@@ -3,11 +3,10 @@ __author__ = "grburgess"
 # import astropy.constants as constants
 import numpy as np
 from .shell_history import ShellHistory
-
+from numba import njit, jit
 
 C = 2.99e10  # cm/s
 C2 = C * C
-
 
 class Shell(object):
     def __init__(self, initial_gamma, initial_mass, initial_radius, jet):
@@ -43,7 +42,8 @@ class Shell(object):
         self._shell_id = None
 
         self._history = ShellHistory()
-        
+
+        self._has_changed = True
 
     @property
     def radius(self):
@@ -73,7 +73,11 @@ class Shell(object):
         """
         get the velocity in cm/s
         """
-        return C * np.sqrt(1 - (1.0 / (self._gamma * self._gamma)))
+
+        if self._has_changed:
+            self._velocity = C * np.sqrt(1 - (1.0 / (self._gamma * self._gamma)))
+            self._has_changed = False
+        return self._velocity
 
     @property
     def energy(self):
@@ -101,22 +105,26 @@ class Shell(object):
 
         # from Daigne 1998
 
-        gamma_R = np.sqrt(self._gamma * other_shell.gamma)
+        # gamma_R = np.sqrt(self._gamma * other_shell.gamma)
 
-        a = (self._mass * self._gamma + other_shell.mass * other_shell.gamma) / (
-            self._mass * np.sqrt(self._gamma * self._gamma - 1.0)
-            + other_shell.mass * np.sqrt(other_shell.gamma * other_shell.gamma - 1.0)
+        # a = (self._mass * self._gamma + other_shell.mass * other_shell.gamma) / (
+        #     self._mass * np.sqrt(self._gamma * self._gamma - 1.0)
+        #     + other_shell.mass * np.sqrt(other_shell.gamma * other_shell.gamma - 1.0)
+        # )
+
+        # a2 = a * a
+
+        # gamma_final = np.sqrt(a2 / (a2 - 1.0))
+
+        gamma_final = _gamma_final(
+            self._gamma, other_shell.gamma, self._mass, other_shell.mass
         )
-
-        a2 = a * a
-
-        gamma_final = np.sqrt(a2 / (a2 - 1.0))
 
         # energy calculations
 
-        internal_energy = self._mass * (
-            self._gamma / gamma_final - 1.0
-        ) + other_shell.mass * (other_shell.gamma / gamma_final - 1.0)
+        internal_energy = _internal_energy(
+            self._mass, self._gamma, gamma_final, other_shell.mass, other_shell.gamma
+        )
 
         # now modify the physics of this shell after the merge
 
@@ -126,6 +134,8 @@ class Shell(object):
         self._jet.add_collision(
             radiated_energy=internal_energy, gamma=gamma_final, radius=self._radius
         )
+
+        self._has_changed = True
 
     def deactivate(self, time):
         """
@@ -147,16 +157,14 @@ class Shell(object):
 
     def record_history(self, time):
 
-        self._shell_history.add_entry(
+        self._history.add_entry(
             time=time,
             gamma=self.gamma,
             radius=self.radius,
             mass=self._mass,
-            status=self.status
-
+            status=self.status,
         )
-        
-    
+
     def __repr__(self):
 
         out = "radius: %f\ngamma: %f\nmass: %f" % (
@@ -188,7 +196,7 @@ class ShellSet(object):
         self._currently_active = np.array([shell.status for shell in self._shells])
 
         # we need to recompute the ordering
-        
+
         self._has_moved = True
 
     def __iter__(self):
@@ -208,7 +216,7 @@ class ShellSet(object):
             self._currently_active[index] = True
 
         self._has_moved = True
-            
+
     def deactivate_shells(self, time=0.0, *shell_index):
 
         for index in shell_index:
@@ -217,7 +225,7 @@ class ShellSet(object):
             self._currently_active[index] = False
 
         self._has_moved = True
-            
+
     @property
     def gamma_distribution(self):
 
@@ -231,7 +239,6 @@ class ShellSet(object):
 
         if self._has_moved:
 
-
             tmp = []
 
             # the idea is that only shells with this conditon
@@ -239,29 +246,21 @@ class ShellSet(object):
 
             # check if we have moved since the last call
 
-
             gamma_dist = self.gamma_distribution
 
             if len(gamma_dist) > 0:
 
-                for i in range(len(gamma_dist) - 1):
+                idx = _get_ordered_shells(gamma_dist)
 
-                    if gamma_dist[i] < gamma_dist[i + 1]:
+                self._velocity_ordered_shells = self.active_shells[idx]
 
-                        tmp.append(i)
-                        tmp.append(i + 1)
-
-
-                self._velocity_ordered_shells = self.active_shells[list(set(tmp))]
-            
             else:
 
                 self._velocity_ordered_shells = []
 
             # we haven't moved the shells yet
             self._has_moved = False
-            
-            
+
         return self._velocity_ordered_shells
 
     @property
@@ -282,6 +281,15 @@ class ShellSet(object):
             v = self.velocities
             r = self.radii
 
+            # ttc = _time_to_collision(r_front=r[:-1],
+            #                          r_back=r[1:],
+            #                          v_front=v[:-1],
+            #                          v_back=v[1:]
+
+
+            # )
+
+            # this is faster than numba
             ttc = (r[:-1] - r[1:]) / (v[1:] - v[:-1])
 
             return ttc
@@ -299,7 +307,7 @@ class ShellSet(object):
         :rtype: 
 
         """
-        
+
         for shell in self.active_shells:
 
             shell.move(delta_time)
@@ -316,8 +324,63 @@ class ShellSet(object):
     def n_shells(self):
 
         return self._n_shells
-
+    
     @property
     def n_active_shells(self):
 
         return len(self.active_shells)
+
+    def record_history(self, time):
+
+        for shell in self._shells:
+            shell.record_history(time)
+    
+
+@njit(fastmath=True)
+def _internal_energy(mass, gamma, gamma_final, mass_other, gamma_other):
+    return mass * (gamma / gamma_final - 1.0) + mass_other * (gamma_other / gamma_final - 1.0)
+
+
+@njit(fastmath=True)
+def _gamma_final(gamma, gamma_other, mass, mass_other):
+
+    gamma_R = np.sqrt(gamma * gamma_other)
+
+    a = (mass * gamma + mass_other * gamma_other) / (
+        mass * np.sqrt(gamma * gamma - 1.0)
+        + mass_other * np.sqrt(gamma_other * gamma_other - 1.0)
+    )
+
+    a2 = a * a
+
+    gamma_final = np.sqrt(a2 / (a2 - 1.0))
+
+    return gamma_final
+
+
+
+def _time_to_collision(r_front, r_back, v_front, v_back):
+
+    ttc = np.zeros_like(r_front)
+
+    for i in range(len(r_front)):
+
+        ttc[i] = (r_front[i] - r_back[i])/(v_back[i] - v_front[i] )
+
+    return ttc
+
+@njit()
+def _get_ordered_shells(gamma_dist):
+
+    tmp = []
+    
+
+    for i in range(len(gamma_dist) - 1):
+
+        if gamma_dist[i] < gamma_dist[i + 1]:
+
+            tmp.append(i)
+            tmp.append(i + 1)
+
+    return list(set(tmp))
+

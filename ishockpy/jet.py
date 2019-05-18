@@ -9,7 +9,7 @@ MIN_DELTAT = 1e300
 
 class Jet(object):
     def __init__(
-        self, min_radius, variability_time, mass_distribution, gamma_distribution
+            self, min_radius, variability_time, mass_distribution, gamma_distribution, store=False
     ):
         """FIXME! briefly describe function
 
@@ -43,13 +43,28 @@ class Jet(object):
         self._time = 0
         self._variability_time = variability_time
 
-        # we need to go ahead and emit a shell
+        self._store = store
 
+
+        if self._store:
+
+            self._shells.record_history(self._time)
+        
+        # we need to go ahead and emit a shell
+        
+        
         self._shells.activate_shells(self._time, self._shell_emit_iterator)
         self._shells.move(self._variability_time)
         self._time += self._variability_time
         self._shell_emit_iterator += 1
 
+
+        if self._store:
+
+            self._shells.record_history(self._time)
+        
+
+        
         self._shells.activate_shells(self._time, self._shell_emit_iterator)
         self._shells.move(self._variability_time)
         self._time += self._variability_time
@@ -57,13 +72,28 @@ class Jet(object):
 
         self._time_until_next_emission = self._variability_time
 
+        if self._store:
+
+            self._shells.record_history(self._time)
+        
+
+
+        
         self._status = True
+
+        
 
     def start(self):
 
         while self._status:
 
             self._advance_time()
+
+            if self._store:
+
+                self._shells.record_history(self._time)
+        
+
 
     def add_collision(self, radiated_energy, gamma, radius):
 

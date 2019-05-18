@@ -18,7 +18,7 @@ class ShellHistory(object):
 
         self._time.append(time)
         self._radius.append(radius)
-        self._gamma.append(radius)
+        self._gamma.append(gamma)
         self._mass.append(mass)
         self._status.append(status)
 
