@@ -4,11 +4,23 @@ import numpy as np
 import pandas as pd
 from ishockpy.shell import Shell, ShellSet
 
-MIN_DELTAT = 1E300
+MIN_DELTAT = 1e300
 
 
 class Jet(object):
-    def __init__(self, min_radius, variability_time, mass_distribution, gamma_distribution):
+    def __init__(
+        self, min_radius, variability_time, mass_distribution, gamma_distribution
+    ):
+        """FIXME! briefly describe function
+
+        :param min_radius: 
+        :param variability_time: 
+        :param mass_distribution: 
+        :param gamma_distribution: 
+        :returns: 
+        :rtype: 
+
+        """
 
         assert len(mass_distribution) == len(gamma_distribution)
 
@@ -16,13 +28,16 @@ class Jet(object):
 
         self._shell_emit_iterator = 0
 
-        self._shells = ShellSet([
-            Shell(gamma, mass, min_radius, self)
-            for gamma, mass in zip(gamma_distribution, mass_distribution)
-        ])
+        self._shells = ShellSet(
+            [
+                Shell(gamma, mass, min_radius, self)
+                for gamma, mass in zip(gamma_distribution, mass_distribution)
+            ]
+        )
 
         self._collisions = pd.DataFrame(
-            columns=['radiated_energy', 'gamma', 'radius', 'time'])
+            columns=["radiated_energy", "gamma", "radius", "time"]
+        )
         self._n_collisions = 0
 
         self._time = 0
@@ -30,35 +45,34 @@ class Jet(object):
 
         # we need to go ahead and emit a shell
 
-        self._shells.activate_shells(self._time,self._shell_emit_iterator)
+        self._shells.activate_shells(self._time, self._shell_emit_iterator)
         self._shells.move(self._variability_time)
         self._time += self._variability_time
-        self._shell_emit_iterator+=1
+        self._shell_emit_iterator += 1
 
-        self._shells.activate_shells(self._time,self._shell_emit_iterator)
+        self._shells.activate_shells(self._time, self._shell_emit_iterator)
         self._shells.move(self._variability_time)
         self._time += self._variability_time
-        self._shell_emit_iterator+=1
+        self._shell_emit_iterator += 1
 
-        
         self._time_until_next_emission = self._variability_time
 
         self._status = True
 
-
     def start(self):
 
-
-        while(self._status):
-
+        while self._status:
 
             self._advance_time()
 
-        
     def add_collision(self, radiated_energy, gamma, radius):
 
-        self._collisions.loc[
-            self._n_collisions] = [radiated_energy, gamma, radius, self._time]
+        self._collisions.loc[self._n_collisions] = [
+            radiated_energy,
+            gamma,
+            radius,
+            self._time,
+        ]
         self._n_collisions += 1
 
     @property
@@ -71,7 +85,7 @@ class Jet(object):
 
         # if there are any collisions
 
-        if len(time_until_next_collision)>0:
+        if len(time_until_next_collision) > 0:
 
             # find the index of the minimum time differnec
 
@@ -81,7 +95,10 @@ class Jet(object):
 
             delta_time = time_until_next_collision[collision_idx]
 
-            if delta_time > self._time_until_next_emission and self._shell_emit_iterator<self._n_shells:
+            if (
+                delta_time > self._time_until_next_emission
+                and self._shell_emit_iterator < self._n_shells
+            ):
 
                 # if the next collision will happen AFTER a shell will be
                 # emitted, then we will go ahead and emit that shell
@@ -101,7 +118,7 @@ class Jet(object):
                 # reset time until next emission
 
                 self._time_until_next_emission = self._variability_time
-                
+
                 # increase the shell counter
 
                 self._shell_emit_iterator += 1
@@ -118,21 +135,21 @@ class Jet(object):
 
                 # collide the shells
 
-                self._shells.velocity_ordered_shells[
-                    collision_idx].collide_shell(
-                        self._shells.velocity_ordered_shells[collision_idx +
-                                                             1])
+                self._shells.velocity_ordered_shells[collision_idx].collide_shell(
+                    self._shells.velocity_ordered_shells[collision_idx + 1]
+                )
                 # deactivate the forward shell
-                
+
                 self._shells.deactivate_shells(
                     self._time,
-                    self._shells.velocity_ordered_shells[collision_idx + 1]
-                    .shell_id)
+                    self._shells.velocity_ordered_shells[collision_idx + 1].shell_id,
+                )
 
+                # remove the time we spent colliding this shell
+                
                 self._time_until_next_emission -= delta_time
         else:
 
             if self._shell_emit_iterator == self._n_shells:
 
                 self._status = False
-                
