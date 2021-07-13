@@ -11,11 +11,12 @@ class Jet(object):
     def __init__(
             self, min_radius, variability_time, mass_distribution, gamma_distribution, store=False
     ):
-        """FIXME! briefly describe function
+        """
+        Create a jet with the given properties
 
-        :param min_radius: 
-        :param variability_time: 
-        :param mass_distribution: 
+        :param min_radius: the minimum radius
+        :param variability_time: the delay between shells
+        :param mass_distribution:
         :param gamma_distribution: 
         :returns: 
         :rtype: 
