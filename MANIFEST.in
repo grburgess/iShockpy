@@ -1,0 +1,2 @@
+include versioneer.py
+include ishockpy/_version.py
