@@ -80,11 +80,11 @@ class Shell(object):
         return self._velocity
 
     @property
-    def energy(self):
+    def energy(self) -> float:
 
         return self._gamma * self._mass * C2
 
-    def move(self, delta_time):
+    def move(self, delta_time) -> None:
 
         self._radius += self.velocity * delta_time
 
@@ -137,7 +137,7 @@ class Shell(object):
 
         self._has_changed = True
 
-    def deactivate(self, time):
+    def deactivate(self, time: float) -> None:
         """
         turn the shell of and record when the shell when dead
         """
@@ -146,7 +146,7 @@ class Shell(object):
 
         self._death_time = time
 
-    def activate(self, time):
+    def activate(self, time: float) -> None:
         """
         turn the shell on and record the comoving time
         """
