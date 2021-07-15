@@ -11,8 +11,9 @@ from ishockpy.io.logging import setup_logger
 
 from .shell_history import ShellHistory
 from .utils.constants import c as C
-from .utils.numba_vector import VectorInt32
 from .utils.numba_funcs import velocity
+from .utils.numba_vector import VectorInt32
+
 log = setup_logger(__name__)
 
 
@@ -385,6 +386,7 @@ def _internal_energy(mass, gamma, gamma_final, mass_other, gamma_other):
 @njit(fastmath=True)
 def _gamma_final(gamma, gamma_other, mass, mass_other):
 
+    # from damien
     gamma_R = np.sqrt(gamma * gamma_other)
 
     a = (mass * gamma + mass_other * gamma_other) / (

@@ -4,7 +4,7 @@ import sys
 from contextlib import contextmanager
 from typing import Dict, Optional
 
-import colorama
+import olorama
 from colorama import Back, Fore, Style
 
 from ishockpy.utils.configuration import ishockpy_config
