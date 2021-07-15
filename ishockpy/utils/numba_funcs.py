@@ -6,5 +6,6 @@ from .constants import c
 
 @nb.njit(fastmath=True)
 def velocity(gamma):
-    return c * np.sqrt(gamma**2 -1. )/gamma
+#    return c * np.sqrt(gamma**2 -1. )/gamma
+    return c * np.sqrt(1.- (1./(gamma * gamma)))
 

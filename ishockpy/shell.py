@@ -126,6 +126,12 @@ class Shell(object):
 
         return self._gamma * self._mass * C2
 
+
+    @property
+    def history(self) -> ShellHistory:
+
+        return self._history
+    
     def move(self, delta_time) -> None:
 
         self._radius += self.velocity * delta_time
@@ -179,7 +185,7 @@ class Shell(object):
         )
 
         self._has_changed = True
-
+        
     def deactivate(self, time: float) -> None:
         """
         turn the shell of and record when the shell when dead

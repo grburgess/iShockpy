@@ -1,15 +1,16 @@
 __author__ = "grburgess"
 
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 
 from ishockpy.shell import Shell, ShellSet
 
-from .collision import Collision
+from .collision import Collision, CollisionHistory
 from .distribution import InitialConditions
 from .io.logging import setup_logger
+from .shell_history import DetailedHistory
 
 log = setup_logger(__name__)
 
@@ -21,7 +22,7 @@ class Jet(object):
             self, initial_conditions: InitialConditions, store=False
     ):
 
-        self._n_shells: init = initial_conditions.n_shells
+        self._n_shells: int = initial_conditions.n_shells
 
         self._shell_emit_iterator = 0
 
@@ -90,7 +91,15 @@ class Jet(object):
                 self._shells.record_history(self._time)
         
 
+        self._collision_history = CollisionHistory(self._collisions)
 
+        if self._store:
+
+            self._detailed_history: Optional[DetailedHistory]  = DetailedHistory([shell.history for shell in self._shells])
+
+        else:
+
+            self._detailed_history = None
     def add_collision(self, radiated_energy, gamma, radius):
 
         self._collisions.append( Collision(
@@ -103,9 +112,20 @@ class Jet(object):
         self._n_collisions += 1
 
     @property
+    def shells(self) -> ShellSet:
+
+        return self._shells
+        
+    @property
     def n_collisions(self):
         return self._n_collisions
 
+    @property
+    def collision_history(self) -> CollisionHistory:
+
+        return self._collision_history
+
+    
     def _advance_time(self):
 
         time_until_next_collision = self._shells.time_to_collisions
@@ -193,3 +213,4 @@ class Jet(object):
                 self._shells.activate_shells(self._time, self._shell_emit_iterator)
 
                 self._shell_emit_iterator += 1
+
