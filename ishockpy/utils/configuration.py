@@ -1,5 +1,5 @@
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 from omegaconf import OmegaConf
 
@@ -52,7 +52,7 @@ class IShockpyConfig:
 
 
 # Read the default config
-ishockpy_config: IshockpyConfig = OmegaConf.structured(IShockpyConfig)
+ishockpy_config: IShockpyConfig = OmegaConf.structured(IShockpyConfig)
 
 # Merge with local config if it exists
 if _config_file.is_file():

@@ -1,50 +1,47 @@
 __author__ = "grburgess"
 
+from typing import List
+
 import numpy as np
 import pandas as pd
+
 from ishockpy.shell import Shell, ShellSet
+
+from .collision import Collision
+from .distribution import InitialConditions
+from .io.logging import setup_logger
+
+log = setup_logger(__name__)
 
 MIN_DELTAT = 1e300
 
 
 class Jet(object):
     def __init__(
-            self, min_radius, variability_time, mass_distribution, gamma_distribution, store=False
+            self, initial_conditions: InitialConditions, store=False
     ):
-        """
-        Create a jet with the given properties
 
-        :param min_radius: the minimum radius
-        :param variability_time: the delay between shells
-        :param mass_distribution:
-        :param gamma_distribution: 
-        :returns: 
-        :rtype: 
-
-        """
-
-        assert len(mass_distribution) == len(gamma_distribution)
-
-        self._n_shells = len(mass_distribution)
+        self._n_shells: init = initial_conditions.n_shells
 
         self._shell_emit_iterator = 0
 
+        # initialize the shells
+        
         self._shells = ShellSet(
             [
-                Shell(gamma, mass, min_radius, self)
-                for gamma, mass in zip(gamma_distribution, mass_distribution)
+                Shell(gamma, mass, initial_conditions.r_min, self)
+                for gamma, mass in zip(initial_conditions.gamma_distribution.values,
+                                       initial_conditions. mass_distribution.values)
             ]
         )
 
-        self._collisions = pd.DataFrame(
-            columns=["radiated_energy", "gamma", "radius", "time"]
-        )
-        self._n_collisions = 0
+        self._collisions: List[Collision] = []
+        self._n_collisions: int = 0
 
-        self._time = 0
-        self._variability_time = variability_time
+        self._time: float = 0.
+        self._variability_time: float = initial_conditions.variability_time
 
-        self._store = store
+        self._store: bool = store
 
 
         if self._store:
@@ -77,8 +74,6 @@ class Jet(object):
 
             self._shells.record_history(self._time)
         
-
-
         
         self._status = True
 
@@ -98,12 +93,13 @@ class Jet(object):
 
     def add_collision(self, radiated_energy, gamma, radius):
 
-        self._collisions.loc[self._n_collisions] = [
+        self._collisions.append( Collision(
             radiated_energy,
             gamma,
             radius,
             self._time,
-        ]
+        ))
+
         self._n_collisions += 1
 
     @property
@@ -114,11 +110,14 @@ class Jet(object):
 
         time_until_next_collision = self._shells.time_to_collisions
 
+        
+        #time_until_next_collision = time_until_next_collision[time_until_next_collision > 0]
+
         # if there are any collisions
 
         if len(time_until_next_collision) > 0:
 
-            # find the index of the minimum time differnec
+            # find the index of the minimum time difference
 
             collision_idx = time_until_next_collision.argmin()
 
@@ -173,7 +172,7 @@ class Jet(object):
 
                 self._shells.deactivate_shells(
                     self._time,
-                    self._shells.velocity_ordered_shells[collision_idx + 1].shell_id,
+                    self._shells.velocity_ordered_shells[collision_idx + 1].id,
                 )
 
                 # remove the time we spent colliding this shell
@@ -184,3 +183,13 @@ class Jet(object):
             if self._shell_emit_iterator == self._n_shells:
 
                 self._status = False
+
+            else:
+
+                self._time += self._time_until_next_emission
+
+                # emit the next shell
+
+                self._shells.activate_shells(self._time, self._shell_emit_iterator)
+
+                self._shell_emit_iterator += 1
