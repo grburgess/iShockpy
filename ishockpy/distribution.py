@@ -248,7 +248,7 @@ class SingleGammaStep(GammaDistribution):
 
         out = np.empty(len(self._initial_times))
 
-        idx = self._initial_times >= self._initial_times.max() * 0.25
+        idx = self._initial_times >= self._initial_times.max() * 0.2
 
         out[idx] = 400
 

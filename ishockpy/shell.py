@@ -381,12 +381,12 @@ class ShellSet(object):
             shell.record_history(time)
     
 
-@njit(fastmath=True)
+@njit(fastmath=False)
 def _internal_energy(mass, gamma, gamma_final, mass_other, gamma_other):
     return mass * (gamma / gamma_final - 1.0) + mass_other * (gamma_other / gamma_final - 1.0)
 
 
-@njit(fastmath=True)
+@njit(fastmath=False)
 def _gamma_final(gamma, gamma_other, mass, mass_other):
 
     # from damien
@@ -404,26 +404,11 @@ def _gamma_final(gamma, gamma_other, mass, mass_other):
     return gamma_final
 
 
-@njit(fastmath=True)
+@njit(fastmath=False)
 def _time_to_collision(r_front, r_back, v_front, v_back):
-
-    # n = len(r_front)
-    
-    # ttc = np.zeros_like(r_front)
 
     radius_diff = r_front - r_back
     ttc = radius_diff / (v_back - v_front)
-            
-    idx = radius_diff == 0.
-
-    ttc[idx] = 0.
-            
-
-
-    
-    # for i in range(len(r_front)):
-
-    #     ttc[i] = (r_front[i] - r_back[i])/(v_back[i] - v_front[i] )
 
     return ttc
 

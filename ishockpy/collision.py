@@ -31,6 +31,12 @@ class CollisionHistory(object):
         return [x.gamma for x in self._collisions]
 
     @property
+    def radiated_energy(self) -> List[float]:
+
+        return [x.radiated_energy for x in self._collisions]
+
+    
+    @property
     def radius(self) -> List[float]:
 
         return [x.radius for x in self._collisions]
