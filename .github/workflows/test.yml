@@ -39,7 +39,7 @@ jobs:
         export PYSPI=~/datafolder
         python -m pytest -vv --cov=ishockpy/ --cov-report=xml
       env:
-        NUMBA_DISABLE_JIT: 1
+        NUMBA_DISABLE_JIT: 0
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
