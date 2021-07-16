@@ -326,6 +326,9 @@ class ShellSet(object):
 
         if self.n_active_shells > 1:
 
+
+            # the velocity ordered shells only!
+            
             v = self.velocities
             r = self.radii
 
@@ -439,4 +442,4 @@ def _get_ordered_shells(gamma_dist):
             tmp.append(i + 1)
 
     #return list(set(tmp))
-    return tmp.arr
+    return np.unique(tmp.arr)
