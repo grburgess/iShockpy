@@ -23,6 +23,16 @@ class Jet(object):
             self, initial_conditions: InitialConditions, store=False
     ):
 
+        """
+        A jet to be simulated from the given inital conditions
+
+        :param initial_conditions: 
+        :type initial_conditions: InitialConditions
+        :param store: 
+        :type store: 
+        :returns: 
+
+        """
         self._n_shells: int = initial_conditions.n_shells
 
         self._shell_emit_iterator = 0
@@ -84,7 +94,13 @@ class Jet(object):
         
 
     def start(self):
+        """
+        
+        Start the jet 
 
+        :returns: 
+
+        """
         while self._status:
 
             self._advance_time()
@@ -128,6 +144,10 @@ class Jet(object):
 
         return self._collision_history
 
+    @property
+    def detailed_history(self) -> Optional[DetailedHistory]:
+
+        return self._detailed_history
     
     def _advance_time(self):
 

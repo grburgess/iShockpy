@@ -222,7 +222,7 @@ class InitialConditions(object):
         fig, ax = plt.subplots()
 
 
-        ax.plot(self._mass_distribution.values / self._mass_distribution.values.sum(), self._gamma_distribution.values)
+        ax.plot(self._mass_distribution.values.cumsum() / self._mass_distribution.values.sum(), self._gamma_distribution.values, ".")
 
         ax.set_xlabel(r"M/M$_{\mathrm{total}}$")
         ax.set_ylabel(r"$\Gamma$")
@@ -234,7 +234,7 @@ class InitialConditions(object):
         fig, ax = plt.subplots()
 
 
-        ax.plot(self._radial_distribution.values, self._mass_distribution.values)
+        ax.plot(self._radial_distribution.values, self._mass_distribution.values, '.')
 
         ax.set_xlabel("radius")
         ax.set_ylabel(r"mass")

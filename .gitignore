@@ -1,3 +1,4 @@
 /ishockpy.egg-info/*
 /ishockpy/__pycache__/*
 *.pyc
+/.dir-locals.el
