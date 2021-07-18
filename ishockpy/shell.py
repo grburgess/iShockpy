@@ -43,9 +43,11 @@ class Shell(object):
         self._radius: float = initial_radius
 
         self._initial_gamma: float = initial_gamma
-        self._initial_mass: float = initial_mass
-        self._initial_radius: float = initial_radius
 
+        self._initial_mass: float = initial_mass
+
+        self._initial_radius: float = initial_radius
+        
         # keep track of the jet
         self._jet = jet
 
@@ -137,6 +139,7 @@ class Shell(object):
 
         self._radius += self.velocity * delta_time
 
+        
     def collide_shell(self, other_shell):
         """FIXME! briefly describe function
 
@@ -165,6 +168,8 @@ class Shell(object):
             
         # from Daigne 1998
 
+
+        gamma_r = np.sqrt(self.gamma * other_shell.gamma)
         
         gamma_final = _gamma_final(
             self._gamma, other_shell.gamma, self._mass, other_shell.mass
@@ -181,8 +186,10 @@ class Shell(object):
         self._mass += other_shell.mass
         self._gamma = gamma_final
 
+        
+        
         self._jet.add_collision(
-            radiated_energy=internal_energy, gamma=gamma_final, radius=self._radius
+            radiated_energy=internal_energy, gamma=gamma_r, radius=self._radius
         )
 
         self._has_changed = True
@@ -360,6 +367,9 @@ class ShellSet(object):
         # the shells have move
         self._has_moved = True
 
+        
+
+        
     @property
     def active_shells(self) -> List[Shell]:
 

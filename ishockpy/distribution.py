@@ -1,3 +1,5 @@
+from typing import Optional
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -116,7 +118,7 @@ class RadialDistribution(Distribution):
         
 class InitialConditions(object):
 
-    def __init__(self, total_time: float, delta_time: float, total_energy: float,  gamma_distribtuion: GammaDistribution, r_min) -> None:
+    def __init__(self, total_time: float, delta_time: float, total_energy: float,  gamma_distribtuion: GammaDistribution, r_min, r_max =None) -> None:
 
         """
         Initial conditions 
@@ -142,6 +144,8 @@ class InitialConditions(object):
         self._total_energy: float = total_energy
 
         self._r_min: float = r_min
+
+        self._r_max: Optional[float] = r_max
         
         self._n_shells: int = total_time // delta_time
         
@@ -195,6 +199,18 @@ class InitialConditions(object):
         """
         return self._r_min
 
+    @property
+    def r_max(self) -> Optional[float]:
+        """
+        minimum jet launching radius
+
+        :returns: 
+
+        """
+        return self._r_max
+
+
+    
     @property
     def variability_time(self) -> float:
         return self._delta_time

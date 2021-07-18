@@ -39,7 +39,31 @@ class ShellHistory:
 
         return Conditions(mass=self.mass[idx], gamma=self.gamma[idx], status=self.status[idx])
 
+    @property
+    def n_time_steps(self) -> int:
 
+        return len(self.time)
+    
+    def to_hdf5(self, group) -> None:
+
+        group.create_dataset("gamma", data=self.gamma, compression="gzip")
+        group.create_dataset("time", data=self.time, compression="gzip")
+        group.create_dataset("radius", data=self.radius, compression="gzip")
+        group.create_dataset("mass", data=self.mass, compression="gzip")
+        group.create_dataset("status", data=self.status, compression="gzip")
+
+    @classmethod
+    def from_hdf5(cls, group):
+
+        gamma = group["gamma"][()]
+        time = group["time"][()]
+        radius = group["radius"][()]
+        mass = group["mass"][()]
+        status = group["status"][()]
+
+        return cls(gamma=gamma, time=time, radius=radius, mass=mass, status=status)
+
+    
 
 class DetailedHistory(object):
 
@@ -48,7 +72,27 @@ class DetailedHistory(object):
 
         self._shell_histories: List[ShellHistory] =  shell_histories
 
+        self._n_shells = len(self._shell_histories)
 
+        self._n_time_steps =  self._shell_histories[0].n_time_steps
+
+        
+    @property
+    def n_shells(self) -> int:
+
+        return self._n_shells
+
+    @property
+    def n_time_steps(self) -> int:
+
+        return self._n_time_steps
+
+
+    @property
+    def histories(self) -> List[ShellHistory]:
+
+        return self._shell_histories
+    
     def _compute_values_at_time(self, time):
 
         status = []
@@ -88,5 +132,22 @@ class DetailedHistory(object):
         ax.set_ylabel("gamma")
 
 
+    def to_hdf5(self, group) -> None:
 
+
+        group.attrs["n_shells"] = self._n_shells
+        
+        for i, history in enumerate(self._shell_histories):
+
+            shell_group = group.create_group(f"shell_{i}")
+
+            history.to_hdf5(shell_group)
     
+    @classmethod
+    def from_hdf5(cls, group):
+
+        n_shells = int(group.attrs["n_shells"])
+
+        histories = [ShellHistory.from_hdf5(group[f"shell_{i}"]) for i in range(n_shells)]
+
+        return cls(histories)

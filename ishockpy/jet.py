@@ -2,6 +2,7 @@ __author__ = "grburgess"
 
 from typing import List, Optional
 
+import h5py
 import numpy as np
 import pandas as pd
 
@@ -41,6 +42,8 @@ class Jet(object):
 
         self._time: float = 0.
         self._variability_time: float = initial_conditions.variability_time
+        self._max_radius: Optional[float] = initial_conditions.r_max
+        
 
         self._store: bool = store
 
@@ -117,7 +120,7 @@ class Jet(object):
         return self._shells
         
     @property
-    def n_collisions(self):
+    def n_collisions(self) -> int:
         return self._n_collisions
 
     @property
@@ -130,15 +133,12 @@ class Jet(object):
 
         time_until_next_collision = self._shells.time_to_collisions
 
-        
-        #time_until_next_collision = time_until_next_collision[time_until_next_collision > 0]
-
         # if there are any collisions
 
         if len(time_until_next_collision) > 0:
 
             # find the index of the minimum time difference
-
+            
             collision_idx = time_until_next_collision.argmin()
 
             # get that time difference
@@ -165,6 +165,31 @@ class Jet(object):
 
                 self._shells.activate_shells(self._time, self._shell_emit_iterator)
 
+                if self._max_radius is not None:
+                    
+                    # check if any shells are beyond the
+                    # maximum
+
+                    shells_to_deactivate = []
+                    
+                    for shell in self._shells:
+
+                        # if a shell is beyond the maximum
+                        # raidus, then deactivate iterator
+                        if shell.radius >= self._max_radius:
+
+                            shells_to_deactivate.append(shell.id)
+
+                        else:
+
+                            # since the shells are order with the
+                            # highest radius first, as soon as
+                            # we do not find a shell, we can quit
+
+                            break
+
+                    self._shells.deactivate_shells(self._time, shells_to_deactivate)
+                
                 # reset time until next emission
 
                 self._time_until_next_emission = self._variability_time
@@ -214,3 +239,51 @@ class Jet(object):
 
                 self._shell_emit_iterator += 1
 
+    def write_to(self, file_name: str) -> None:
+
+        with h5py.File(file_name, "w") as f:
+
+            f.attrs["store"] = self._store
+
+
+            collision_grp = f.create_group("collisions")
+
+            self._collision_history.to_hdf5(collision_grp)
+
+            if self._store:
+
+                shell_grp = f.create_group("shells")
+
+                self._detailed_history.to_hdf5(shell_grp)
+
+    @staticmethod
+    def from_file(file_name: str):
+        """
+        read the collisions and shell history
+        if there is any. returned a a tuple
+
+
+        :param file_name: 
+        :type file_name: str
+        :returns: 
+
+        """
+        with h5py.File(file_name, "r") as f:
+
+            collisons = CollisionHistory.from_hdf5(f["collisions"])
+
+            
+            if f.attrs["store"]:
+
+                shell_history = DetailedHistory.from_hdf5(f["shells"])
+
+            else:
+
+                shell_history = None
+
+
+        return collisons, shell_history
+                
+
+
+                
