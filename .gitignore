@@ -1,2 +1,6 @@
 /ishockpy.egg-info/*
 /ishockpy/__pycache__/*
+*.pyc
+/.dir-locals.el
+/docs/md/*.ipynb
+/docs/Makefile

@@ -1,15 +1,26 @@
 __author__ = "grburgess"
 
+
+from typing import List, Optional
+
 # import astropy.constants as constants
 import numpy as np
-from .shell_history import ShellHistory
-from numba import njit, jit
+from numba import jit, njit
 
-C = 2.99e10  # cm/s
-C2 = C * C
+from ishockpy.io.logging import setup_logger
+
+from .shell_history import ShellHistory
+from .utils.constants import c as C
+from .utils.numba_funcs import velocity
+from .utils.numba_vector import VectorInt32
+
+log = setup_logger(__name__)
+
+
+C2 = C*C
 
 class Shell(object):
-    def __init__(self, initial_gamma, initial_mass, initial_radius, jet):
+    def __init__(self, initial_gamma: float, initial_mass: float, initial_radius: float, jet):
         """
         A 'shell' in the outflow representing a differential
         hyrdo-element with zero width
@@ -24,29 +35,57 @@ class Shell(object):
         """
 
         # the shells status
-        self._active = False
+        self._active: bool = False
 
         # set the initial phyical parameters
-        self._gamma = initial_gamma
-        self._mass = initial_mass
-        self._radius = initial_radius
+        self._gamma: float = initial_gamma
+        self._mass: float = initial_mass
+        self._radius: float = initial_radius
 
-        self._initial_gamma = initial_gamma
-        self._initial_mass = initial_mass
-        self._initial_radius = initial_radius
+        self._initial_gamma: float = initial_gamma
 
+        self._initial_mass: float = initial_mass
+
+        self._initial_radius: float = initial_radius
+        
         # keep track of the jet
         self._jet = jet
 
         # set by the shell set
-        self._shell_id = None
-
+        self._id: Optional[int] = None
+        self._initialized: bool = False
+        
         self._history = ShellHistory()
 
         self._has_changed = True
 
     @property
-    def radius(self):
+    def id(self) -> int:
+
+        return self._id
+    def set_id(self, id: int) -> None:
+        """
+        set the shell ID
+
+        :param id: 
+        :type id: int
+        :returns: 
+
+        """
+
+        if not self._initialized:
+        
+            self._id = id
+
+        else:
+
+            log.error("shell already initialized")
+
+        self._initialized = True
+        
+    
+    @property
+    def radius(self) -> float:
         """
         the comoving radius of the shell in cm
         """
@@ -54,40 +93,53 @@ class Shell(object):
         return self._radius
 
     @property
-    def gamma(self):
+    def gamma(self) -> float:
 
         return self._gamma
 
     @property
-    def mass(self):
+    def mass(self) -> float:
 
         return self._mass
 
     @property
-    def status(self):
+    def status(self) -> bool:
 
         return self._active
 
     @property
-    def velocity(self):
+    def is_active(self) -> bool:
+
+        return self._active
+
+    
+    @property
+    def velocity(self) -> float:
         """
         get the velocity in cm/s
         """
 
         if self._has_changed:
-            self._velocity = C * np.sqrt(1 - (1.0 / (self._gamma * self._gamma)))
+            self._velocity = velocity(self._gamma)
             self._has_changed = False
         return self._velocity
 
     @property
-    def energy(self):
+    def energy(self) -> float:
 
         return self._gamma * self._mass * C2
 
-    def move(self, delta_time):
+
+    @property
+    def history(self) -> ShellHistory:
+
+        return self._history
+    
+    def move(self, delta_time) -> None:
 
         self._radius += self.velocity * delta_time
 
+        
     def collide_shell(self, other_shell):
         """FIXME! briefly describe function
 
@@ -97,25 +149,28 @@ class Shell(object):
 
         """
 
-        assert isinstance(other_shell, Shell), "you can only collide with a shell!"
+        if not isinstance(other_shell, Shell):
 
-        assert (
-            other_shell.radius == self._radius
-        ), "can only collide with a shell that is front of this shell"
+            log.error("you can only collide with a shell!")
 
+            raise AssertionError()
+            
+        if not np.isclose(other_shell.radius, self._radius, rtol=1.):
+
+
+            
+            log.error("can only collide with a shell that is front of this shell")
+            log.error(f"other: {other_shell.radius} this: {self._radius}")
+            log.error(f"other: {other_shell.gamma} this: {self._gamma}")
+            log.error(f"other: {other_shell.id} this: {self._id}")
+
+            raise RuntimeError()
+            
         # from Daigne 1998
 
-        # gamma_R = np.sqrt(self._gamma * other_shell.gamma)
 
-        # a = (self._mass * self._gamma + other_shell.mass * other_shell.gamma) / (
-        #     self._mass * np.sqrt(self._gamma * self._gamma - 1.0)
-        #     + other_shell.mass * np.sqrt(other_shell.gamma * other_shell.gamma - 1.0)
-        # )
-
-        # a2 = a * a
-
-        # gamma_final = np.sqrt(a2 / (a2 - 1.0))
-
+        gamma_r = np.sqrt(self.gamma * other_shell.gamma)
+        
         gamma_final = _gamma_final(
             self._gamma, other_shell.gamma, self._mass, other_shell.mass
         )
@@ -131,13 +186,15 @@ class Shell(object):
         self._mass += other_shell.mass
         self._gamma = gamma_final
 
+        
+        
         self._jet.add_collision(
-            radiated_energy=internal_energy, gamma=gamma_final, radius=self._radius
+            radiated_energy=internal_energy, gamma=gamma_r, radius=self._radius
         )
 
         self._has_changed = True
-
-    def deactivate(self, time):
+        
+    def deactivate(self, time: float) -> None:
         """
         turn the shell of and record when the shell when dead
         """
@@ -146,7 +203,7 @@ class Shell(object):
 
         self._death_time = time
 
-    def activate(self, time):
+    def activate(self, time: float) -> None:
         """
         turn the shell on and record the comoving time
         """
@@ -155,7 +212,7 @@ class Shell(object):
 
         self._birth_time = time
 
-    def record_history(self, time):
+    def record_history(self, time: float) -> None:
 
         self._history.add_entry(
             time=time,
@@ -176,7 +233,7 @@ class Shell(object):
 
 
 class ShellSet(object):
-    def __init__(self, list_of_shells):
+    def __init__(self, list_of_shells: List[Shell]):
         """
         A set of shells
 
@@ -186,29 +243,29 @@ class ShellSet(object):
 
         """
 
-        self._shells = np.array(list_of_shells)
+        self._shells: List[Shell] = np.array(list_of_shells)
 
         # set the static shell id
         for i, shell in enumerate(self._shells):
 
-            shell.shell_id = i
+            shell.set_id(i)
 
         self._currently_active = np.array([shell.status for shell in self._shells])
 
         # we need to recompute the ordering
 
-        self._has_moved = True
+        self._has_moved: bool = True
 
     def __iter__(self):
 
         for shell in self._shells:
             yield shell
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Shell:
 
         return self._shells[item]
 
-    def activate_shells(self, time=0.0, *shell_index):
+    def activate_shells(self, time=0.0, *shell_index) -> None:
 
         for index in shell_index:
 
@@ -217,7 +274,7 @@ class ShellSet(object):
 
         self._has_moved = True
 
-    def deactivate_shells(self, time=0.0, *shell_index):
+    def deactivate_shells(self, time=0.0, *shell_index) -> None:
 
         for index in shell_index:
 
@@ -232,14 +289,12 @@ class ShellSet(object):
         return np.array([shell.gamma for shell in self.active_shells])
 
     @property
-    def velocity_ordered_shells(self):
+    def velocity_ordered_shells(self) -> List[Shell]:
         """
         return the active shells that are ordered in velocity
         """
 
         if self._has_moved:
-
-            tmp = []
 
             # the idea is that only shells with this conditon
             # will collide with each other
@@ -264,33 +319,30 @@ class ShellSet(object):
         return self._velocity_ordered_shells
 
     @property
-    def radii(self):
+    def radii(self) -> List[float]:
 
         return np.array([shell.radius for shell in self.velocity_ordered_shells])
 
     @property
-    def velocities(self):
+    def velocities(self) -> List[float]:
 
         return np.array([shell.velocity for shell in self.velocity_ordered_shells])
 
     @property
-    def time_to_collisions(self):
+    def time_to_collisions(self) -> List[float]:
 
         if self.n_active_shells > 1:
 
+
+            # the velocity ordered shells only!
+            
             v = self.velocities
             r = self.radii
 
-            # ttc = _time_to_collision(r_front=r[:-1],
-            #                          r_back=r[1:],
-            #                          v_front=v[:-1],
-            #                          v_back=v[1:]
-
-
-            # )
-
-            # this is faster than numba
-            ttc = (r[:-1] - r[1:]) / (v[1:] - v[:-1])
+            ttc = _time_to_collision(r_front=r[:-1],
+                                     r_back=r[1:],
+                                     v_front=v[:-1],
+                                     v_back=v[1:])
 
             return ttc
 
@@ -298,7 +350,7 @@ class ShellSet(object):
 
             return []
 
-    def move(self, delta_time):
+    def move(self, delta_time) -> None:
         """
         Move the active shells
 
@@ -315,8 +367,11 @@ class ShellSet(object):
         # the shells have move
         self._has_moved = True
 
+        
+
+        
     @property
-    def active_shells(self):
+    def active_shells(self) -> List[Shell]:
 
         return self._shells[self._currently_active]
 
@@ -326,24 +381,25 @@ class ShellSet(object):
         return self._n_shells
     
     @property
-    def n_active_shells(self):
+    def n_active_shells(self) -> int:
 
         return len(self.active_shells)
 
-    def record_history(self, time):
+    def record_history(self, time) -> None:
 
         for shell in self._shells:
             shell.record_history(time)
     
 
-@njit(fastmath=True)
+@njit(fastmath=False)
 def _internal_energy(mass, gamma, gamma_final, mass_other, gamma_other):
     return mass * (gamma / gamma_final - 1.0) + mass_other * (gamma_other / gamma_final - 1.0)
 
 
-@njit(fastmath=True)
+@njit(fastmath=False)
 def _gamma_final(gamma, gamma_other, mass, mass_other):
 
+    # from damien
     gamma_R = np.sqrt(gamma * gamma_other)
 
     a = (mass * gamma + mass_other * gamma_other) / (
@@ -358,23 +414,21 @@ def _gamma_final(gamma, gamma_other, mass, mass_other):
     return gamma_final
 
 
-
+@njit(fastmath=False)
 def _time_to_collision(r_front, r_back, v_front, v_back):
 
-    ttc = np.zeros_like(r_front)
-
-    for i in range(len(r_front)):
-
-        ttc[i] = (r_front[i] - r_back[i])/(v_back[i] - v_front[i] )
+    radius_diff = r_front - r_back
+    ttc = radius_diff / (v_back - v_front)
 
     return ttc
 
-@njit()
+@njit(fastmath=True)
 def _get_ordered_shells(gamma_dist):
 
-    tmp = []
+    tmp = VectorInt32(0)
     
-
+    
+    
     for i in range(len(gamma_dist) - 1):
 
         if gamma_dist[i] < gamma_dist[i + 1]:
@@ -382,5 +436,5 @@ def _get_ordered_shells(gamma_dist):
             tmp.append(i)
             tmp.append(i + 1)
 
-    return list(set(tmp))
-
+    #return list(set(tmp))
+    return np.unique(tmp.arr)

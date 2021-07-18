@@ -1,0 +1,3 @@
+ignore:
+  - "ishockpy/test"
+  - "ishockpy/_version.py"

@@ -1,0 +1,16 @@
+rtds_action
+sphinx>=1.4
+nbsphinx
+ipykernel
+jupyterthemes
+numpy
+scipy
+ipython
+matplotlib
+h5py
+pandas
+astropy
+tqdm
+numba
+better_apidoc
+
