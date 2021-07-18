@@ -11,3 +11,4 @@ Welcome to ishockpy's documentation!
    :caption: Contents:
 
    notebooks/intro.ipynb	     
+   notebooks/quickstart.ipynb
