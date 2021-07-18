@@ -35,11 +35,6 @@ jobs:
         with:
           name: notebooks-for-${{ github.sha }}
           path: docs/notebooks
-
-      - name: Sleep for 5 minutes
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '1m'
           
       - name: Trigger RTDs build
         uses: dfm/rtds-action@v1
