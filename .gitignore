@@ -4,3 +4,4 @@
 /.dir-locals.el
 /docs/md/*.ipynb
 /docs/Makefile
+/docs/md/.ipynb_checkpoints/
