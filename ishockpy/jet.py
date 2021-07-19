@@ -12,6 +12,7 @@ from .collision import Collision, CollisionHistory
 from .distribution import InitialConditions
 from .io.logging import setup_logger
 from .shell_history import DetailedHistory
+from .utils.constants import c
 
 log = setup_logger(__name__)
 
@@ -39,14 +40,30 @@ class Jet(object):
 
         # initialize the shells
 
+
+
+        _shells = []
+
+        delta_t_engine = 10.
+
+        d = c* delta_t_engine
         
-        self._shells = ShellSet(
-            [
-                Shell(gamma, mass, initial_conditions.r_min, self)
-                for gamma, mass in zip(initial_conditions.gamma_distribution.values,
-                                       initial_conditions. mass_distribution.values)
-            ]
-        )
+        self._shells = ShellSet([Shell(gamma, mass, initial_conditions.r_min + (self._n_shells - k) * d, self) for k, (gamma, mass) in enumerate(zip(initial_conditions.gamma_distribution.values,
+                                       initial_conditions. mass_distribution.values))])
+
+
+
+
+        # this was the old way where shells became active at some time...
+        # it is not the way Daigne does it
+                                
+        # self._shells = ShellSet(
+        #     [
+        #         Shell(gamma, mass, initial_conditions.r_min, self)
+        #         for gamma, mass in zip(initial_conditions.gamma_distribution.values,
+        #                                initial_conditions. mass_distribution.values)
+        #     ]
+        # )
 
         self._collisions: List[Collision] = []
         self._n_collisions: int = 0
@@ -59,35 +76,37 @@ class Jet(object):
         self._store: bool = store
 
 
+        # if self._store:
+
+        #     self._shells.record_history(self._time)
+        
+        # # we need to go ahead and emit a shell
+        
+        
+        # self._shells.activate_shells(self._time, self._shell_emit_iterator)
+        # self._shells.move(self._variability_time)
+        # self._time += self._variability_time
+        #self._shell_emit_iterator += 1
+
+        self._shell_emit_iterator = self._n_shells
+
+
         if self._store:
 
             self._shells.record_history(self._time)
         
-        # we need to go ahead and emit a shell
-        
-        
-        self._shells.activate_shells(self._time, self._shell_emit_iterator)
-        self._shells.move(self._variability_time)
-        self._time += self._variability_time
-        self._shell_emit_iterator += 1
-
-
-        if self._store:
-
-            self._shells.record_history(self._time)
-        
 
         
-        self._shells.activate_shells(self._time, self._shell_emit_iterator)
-        self._shells.move(self._variability_time)
-        self._time += self._variability_time
-        self._shell_emit_iterator += 1
+        # self._shells.activate_shells(self._time, self._shell_emit_iterator)
+        # self._shells.move(self._variability_time)
+        # self._time += self._variability_time
+        # self._shell_emit_iterator += 1
 
         self._time_until_next_emission = self._variability_time
 
-        if self._store:
+        # if self._store:
 
-            self._shells.record_history(self._time)
+        #     self._shells.record_history(self._time)
         
         
         self._status = True

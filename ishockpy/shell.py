@@ -35,7 +35,7 @@ class Shell(object):
         """
 
         # the shells status
-        self._active: bool = False
+        self._active: bool = True
 
         # set the initial phyical parameters
         self._gamma: float = initial_gamma

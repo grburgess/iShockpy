@@ -33,29 +33,29 @@ class CollisionHistory(object):
     @property
     def gamma(self) -> List[float]:
 
-        return [x.gamma for x in self._collisions]
+        return np.array([x.gamma for x in self._collisions])
 
     @property
     def radiated_energy(self) -> List[float]:
 
-        return [x.radiated_energy for x in self._collisions]
+        return np.array([x.radiated_energy for x in self._collisions])
 
     
     @property
     def radius(self) -> List[float]:
 
-        return [x.radius for x in self._collisions]
+        return np.array([x.radius for x in self._collisions])
 
     
     @property
     def time(self) -> List[float]:
 
-        return [x.time for x in self._collisions]
+        return np.array([x.time for x in self._collisions])
 
     @property
     def time_observer(self) -> List[float]:
 
-        return [x.time_observer for x in self._collisions]
+        return np.array([x.time_observer for x in self._collisions])
 
 
     
