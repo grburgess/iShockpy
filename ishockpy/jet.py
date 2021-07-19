@@ -38,6 +38,7 @@ class Jet(object):
         self._shell_emit_iterator = 0
 
         # initialize the shells
+
         
         self._shells = ShellSet(
             [

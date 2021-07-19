@@ -123,7 +123,7 @@ class DetailedHistory(object):
         fig, ax = plt.subplots()
 
 
-        ax.plot(mass.cumsum()/total_mass,gamma,'.')
+        ax.plot(mass[::-1].cumsum()/total_mass,gamma[::-1],'.')
 
         ax.set_xlim(0,1)
 

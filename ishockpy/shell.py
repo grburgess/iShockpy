@@ -5,7 +5,7 @@ from typing import List, Optional
 
 # import astropy.constants as constants
 import numpy as np
-from numba import jit, njit
+from numba import jit, njit, prange
 
 from ishockpy.io.logging import setup_logger
 
@@ -399,9 +399,10 @@ def _internal_energy(mass, gamma, gamma_final, mass_other, gamma_other):
 @njit(fastmath=False)
 def _gamma_final(gamma, gamma_other, mass, mass_other):
 
-    # from damien
+
     gamma_R = np.sqrt(gamma * gamma_other)
 
+    # from damien
     a = (mass * gamma + mass_other * gamma_other) / (
         mass * np.sqrt(gamma * gamma - 1.0)
         + mass_other * np.sqrt(gamma_other * gamma_other - 1.0)
@@ -411,6 +412,15 @@ def _gamma_final(gamma, gamma_other, mass, mass_other):
 
     gamma_final = np.sqrt(a2 / (a2 - 1.0))
 
+    # from daigne
+    
+    # arg = mass_other * gamma_other + mass * gamma
+
+    # arg /= mass_other * gamma + mass * gamma_other
+
+    # gamma_final = np.sqrt(gamma * gamma_other * arg)
+    
+    
     return gamma_final
 
 
@@ -422,7 +432,7 @@ def _time_to_collision(r_front, r_back, v_front, v_back):
 
     return ttc
 
-@njit(fastmath=True)
+@njit(fastmath=True, parallel=True)
 def _get_ordered_shells(gamma_dist):
 
     tmp = VectorInt32(0)
